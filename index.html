@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Xpense Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root{
+      --bg:#0f172a;            /* slate-900 */
+      --panel:#111827;         /* gray-900 */
+      --panel-2:#1f2937;       /* gray-800 */
+      --text:#e5e7eb;          /* gray-200 */
+      --muted:#9ca3af;         /* gray-400 */
+      --accent:#22c55e;        /* green-500 */
+      --accent-2:#06b6d4;      /* cyan-500 */
+      --danger:#ef4444;        /* red-500 */
+      --warn:#f59e0b;          /* amber-500 */
+      --border:#374151;        /* gray-700 */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    header{
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg,#0b122b,#111827);
+      position:sticky; top:0; z-index:10;
+    }
+
+    .container{max-width:1100px; margin:0 auto; padding:16px}
+
+    .title-row{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    h1{margin:0; font-size:1.8rem; letter-spacing:0.5px}
+    h6{
+      margin:6px 0 0; font-size:0.9rem; color:var(--muted);
+      font-family: "Chalkboard", "Gloria Hallelujah", "Comic Sans MS", cursive;
+      font-weight:600;
+    }
+
+    nav.tabs{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+    nav.tabs button{
+      background:var(--panel-2); color:var(--text); border:1px solid var(--border);
+      padding:10px 14px; border-radius:10px; cursor:pointer;
+    }
+    nav.tabs button.active{border-color:var(--accent); box-shadow:0 0 0 2px rgba(34,197,94,0.25)}
+
+    main .view{display:none}
+    main .view.active{display:block}
+
+    .panel{
+      background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; margin-top:16px;
+    }
+
+    .btn{
+      background:var(--accent); color:#001b0b; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    .btn.secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--border)}
+    .btn.danger{background:var(--danger); color:#fff}
+    .btn.warn{background:var(--warn); color:#000}
+    .btn.outline{background:transparent; border:1px solid var(--border); color:var(--text)}
+    .btn.small{padding:6px 10px; font-size:0.85rem}
+
+    .grid{display:grid; gap:12px}
+    .grid.cols-2{grid-template-columns: repeat(2, minmax(0,1fr))}
+    .grid.cols-3{grid-template-columns: repeat(3, minmax(0,1fr))}
+    .grid.cols-4{grid-template-columns: repeat(4, minmax(0,1fr))}
+    @media(max-width:900px){ .grid.cols-3,.grid.cols-4{grid-template-columns: repeat(2, minmax(0,1fr))} }
+    @media(max-width:640px){ .grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns: 1fr} }
+
+    .field{display:flex; flex-direction:column; gap:6px}
+    .field label{font-size:0.9rem; color:var(--muted)}
+    .field input, .field select, .field textarea{
+      background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+      padding:10px; border-radius:10px; outline:none;
+    }
+    .field input[type="date"]{padding:8px 10px}
+    .row{display:flex; gap:8px; align-items:center}
+
+    table{width:100%; border-collapse:collapse}
+    th, td{border-bottom:1px solid var(--border); padding:10px; text-align:left}
+    th{color:var(--muted); font-weight:600}
+    tr:hover td{background:#0e1a3a}
+
+    .chip{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--panel-2); padding:6px 10px; border-radius:999px; font-size:0.85rem}
+    .stat{
+      background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:14px;
+      display:flex; flex-direction:column; gap:8px; cursor:pointer;
+    }
+    .stat:hover{border-color:var(--accent)}
+    .stat .value{font-size:1.3rem; font-weight:700}
+    .muted{color:var(--muted)}
+    .rupee{font-feature-settings:"tnum"; font-variant-numeric: tabular-nums}
+
+    /* Modal */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:20}
+    .modal{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; width:min(640px, 92vw)}
+    .modal-backdrop.show{display:flex}
+
+    .section-title{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    .section-title h3{margin:0; font-size:1.2rem}
+    .spacer{height:8px}
+    .no-data{color:var(--muted); padding:12px 0}
+    .pill{padding:4px 8px; border-radius:999px; background:#102a1c; border:1px solid var(--border); color:var(--accent); font-size:0.8rem}
+    .danger-text{color:var(--danger)}
+    .accent-text{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="title-row">
+        <div>
+          <h1>Xpense Tracker</h1> <h6>your Xpense buddy</h6>
+          <h6>dev by varunnn😊</h6>
+        </div>
+        <div class="row">
+          <button class="btn" id="btnAddTxnHome">Add Transaction</button>
+        </div>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button data-view="home" class="active">Home</button>
+        <button data-view="transactions">Transactions</button>
+        <button data-view="analytics">Analytics</button>
+        <button data-view="cards">Credit Cards</button>
+        <button data-view="users">Users</button>
+        <button data-view="monthly">Monthly Summary</button>
+        <button data-view="settings">Settings</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HOME -->
+    <section id="view-home" class="view active">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Hello there... pookie👋</h3>
+          <button class="btn" id="btnAddTxnHome2">Add Transaction</button>
+        </div>
+        <p class="muted">Track expenses in INR, filter by People, Payment Methods, Categories, and analyze monthly spends.</p>
+        <div class="grid cols-3" id="home-stats"></div>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="view-transactions" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Transactions</h3>
+          <div class="row">
+            <button class="btn" id="btnAddTxn">Add Transaction</button>
+            <button class="btn secondary" id="btnExport">Export JSON</button>
+            <label class="btn outline" for="importFile">Import JSON</label>
+            <input type="file" id="importFile" accept="application/json" style="display:none" />
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="panel" style="margin-top:12px">
+          <div class="grid cols-4">
+            <div class="field">
+              <label>Payment Method</label>
+              <select id="filterPaymentMethod"></select>
+            </div>
+            <div class="field">
+              <label>Category</label>
+              <select id="filterCategory"></select>
+            </div>
+            <div class="field">
+              <label>Person</label>
+              <select id="filterPerson"></select>
+            </div>
+            <div class="field">
+              <label>Date Range</label>
+              <div class="row">
+                <input type="date" id="filterFrom" />
+                <input type="date" id="filterTo" />
+              </div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn secondary" id="btnClearFilters">Clear Filters</button>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="panel">
+          <table id="txnTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Person</th>
+                <th>Category</th>
+                <th>Payment</th>
+                <th>Card</th>
+                <th class="rupee">Amount (₹)</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="txnEmpty" class="no-data" style="display:none">No transactions yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="view-analytics" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Analytics</h3>
+          <span class="pill">Currency: INR</span>
+        </div>
+        <div class="grid cols-3" id="analytics-stats">
+          <!-- Total Spend -->
+          <div class="stat" data-analytics="total">
+            <div class="muted">Total Spend</div>
+            <div class="value rupee" id="an-total">₹0</div>
+            <div class="muted" id="an-total-count">0 transactions</div>
+          </div>
+          <!-- By Category -->
+          <div class="stat" data-analytics="category">
+            <div class="muted">Expenses by Category</div>
+            <div class="value" id="an-top-category">—</div>
+            <div class="muted" id="an-category-desc">Click to view breakdown</div>
+          </div>
+          <!-- By Payment Method -->
+          <div class="stat" data-analytics="payment">
+            <div class="muted">Expenses by Payment Method</div>
+            <div class="value" id="an-top-payment">—</div>
+            <div class="muted" id="an-payment-desc">Click to view breakdown</div>
+          </div>
+          <!-- By Person -->
+          <div class="stat" data-analytics="person">
+            <div class="muted">Expenses by Person</div>
+            <div class="value" id="an-top-person">—</div>
+            <div class="muted" id="an-person-desc">Click to view breakdown</div>
+          </div>
+        </div>
+
+        <!-- Drilldown area -->
+        <div class="panel" id="analytics-drill" style="margin-top:12px; display:none">
+          <div class="section-title">
+            <h3 id="drill-title">Details</h3>
+            <button class="btn secondary" id="btnCloseDrill">Close</button>
+          </div>
+          <table id="drillTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Person</th><th>Category</th><th>Payment</th><th>Card</th>
+                <th class="rupee">Amount (₹)</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="drillEmpty" class="no-data" style="display:none">No matching transactions.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CREDIT CARDS -->
+    <section id="view-cards" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Credit Cards</h3>
+          <div class="row">
+            <button class="btn" id="btnAddCard">Add Card</button>
+          </div>
+        </div>
+
+        <div class="grid cols-2" id="cardsList"></div>
+        <div id="cardsEmpty" class="no-data" style="display:none">No cards added. Click “Add Card”.</div>
+
+        <div class="panel" id="cardTransactionsPanel" style="display:none">
+          <div class="section-title">
+            <h3 id="cardTxnTitle">Card Transactions</h3>
+            <button class="btn secondary" id="btnCloseCardTxns">Close</button>
+          </div>
+          <table id="cardTxnTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Person</th><th>Category</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="cardTxnEmpty" class="no-data" style="display:none">No transactions for this card.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section id="view-users" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Users</h3>
+          <button class="btn" id="btnAddPerson">Add Person</button>
+        </div>
+        <div class="grid cols-2" id="usersList"></div>
+        <div id="usersEmpty" class="no-data" style="display:none">No people added.</div>
+
+        <div class="panel" id="personTransactionsPanel" style="display:none">
+          <div class="section-title">
+            <h3 id="personTxnTitle">Person’s Transactions</h3>
+            <button class="btn secondary" id="btnClosePersonTxns">Close</button>
+          </div>
+          <table id="personTxnTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Payment</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="personTxnEmpty" class="no-data" style="display:none">No transactions for this person.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MONTHLY SUMMARY -->
+    <section id="view-monthly" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Monthly Summary</h3>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <div class="grid cols-4">
+            <div class="field">
+              <label>Person</label>
+              <select id="msPerson"></select>
+            </div>
+            <div class="field">
+              <label>Payment Method</label>
+              <select id="msPayment"></select>
+            </div>
+            <div class="field">
+              <label>From</label>
+              <input type="date" id="msFrom" />
+            </div>
+            <div class="field">
+              <label>To</label>
+              <input type="date" id="msTo" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn secondary" id="btnClearMS">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <table id="monthlyTable">
+            <thead>
+              <tr>
+                <th>Month</th><th class="rupee">Total (₹)</th><th>Count</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="monthlyEmpty" class="no-data" style="display:none">No data.</div>
+        </div>
+
+        <div class="panel" id="monthlyDrill" style="display:none">
+          <div class="section-title">
+            <h3 id="monthlyDrillTitle">Transactions</h3>
+            <button class="btn secondary" id="btnCloseMonthlyDrill">Close</button>
+          </div>
+          <table id="monthlyDrillTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Person</th><th>Category</th><th>Payment</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="monthlyDrillEmpty" class="no-data" style="display:none">No transactions in this month.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h3>Settings</h3>
+        </div>
+
+        <div class="grid cols-2">
+          <div class="panel">
+            <div class="section-title">
+              <h3>Payment Methods</h3>
+              <button class="btn" id="btnAddPayment">Add Method</button>
+            </div>
+            <div id="paymentList"></div>
+            <div id="paymentEmpty" class="no-data" style="display:none">No payment methods.</div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">
+              <h3>Categories</h3>
+              <button class="btn" id="btnAddCategory">Add Category</button>
+            </div>
+            <div id="categoryList"></div>
+            <div id="categoryEmpty" class="no-data" style="display:none">No categories.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Add Transaction -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="section-title">
+        <h3 id="modalTitle">Add Transaction</h3>
+        <button class="btn outline" id="btnCloseModal">Close</button>
+      </div>
+      <form id="txnForm">
+        <div class="grid cols-2">
+          <div class="field">
+            <label>Payment Method</label>
+            <select id="fPaymentMethod" required></select>
+          </div>
+          <div class="field" id="cardField" style="display:none">
+            <label>Credit Card</label>
+            <select id="fCard"></select>
+          </div>
+
+          <div class="field">
+            <label>Category</label>
+            <select id="fCategory" required></select>
+          </div>
+
+          <div class="field">
+            <label>Person</label>
+            <select id="fPerson" required></select>
+          </div>
+
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="fDate" required />
+          </div>
+
+          <div class="field">
+            <label>Amount (INR)</label>
+            <input type="number" id="fAmount" step="0.01" min="0" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="fNotes" rows="2" placeholder="e.g., Dinner at Paradise Biryani"></textarea>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" type="submit" id="btnSubmitTxn">Save</button>
+          <button class="btn secondary" type="button" id="btnResetForm">Reset</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Currency: INR (₹). All amounts saved in INR.</div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ======= Utility =======
+    const fmtINR = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n ?? 0);
+    const todayStr = () => new Date().toISOString().slice(0,10);
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const monthKey = (dateStr) => {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; // YYYY-MM
+    };
+    const nameById = (arr,id) => (arr.find(x => x.id === id)?.name) || '—';
+
+    // ======= State & Persistence =======
+    const STORAGE_KEY = 'expenseTrackerData_v1';
+    const defaultState = {
+      currency: 'INR',
+      people: [{id: uid(), name: 'Varun'}],
+      paymentMethods: [
+        {id: uid(), name: 'Credit Card'},
+        {id: uid(), name: 'UPI'},
+        {id: uid(), name: 'Cash'}
+      ],
+      categories: [
+        {id: uid(), name: 'Food'},
+        {id: uid(), name: 'Travel'}
+      ],
+      cards: [],         // {id, name, last4?}
+      transactions: []   // {id, date, amount, categoryId, personId, paymentMethodId, cardId?, notes}
+    };
+
+    let state = loadState();
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        // Ensure essential arrays exist
+        ['people','paymentMethods','categories','cards','transactions'].forEach(k => parsed[k] ||= []);
+        parsed.currency ||= 'INR';
+        return parsed;
+      }catch(e){
+        console.warn('Failed to load state:', e);
+        return structuredClone(defaultState);
+      }
+    }
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+
+    // ======= Navigation =======
+    const tabs = document.getElementById('tabs').querySelectorAll('button');
+    const views = document.querySelectorAll('main .view');
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const v = btn.dataset.view;
+      views.forEach(s => s.classList.remove('active'));
+      document.getElementById('view-' + v).classList.add('active');
+    }));
+
+    // ======= Modal handling =======
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const openModal = () => { modalBackdrop.classList.add('show'); document.getElementById('fDate').value ||= todayStr(); };
+    const closeModal = () => { modalBackdrop.classList.remove('show'); resetForm(); };
+    document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+    document.getElementById('btnAddTxnHome').addEventListener('click', openModal);
+    document.getElementById('btnAddTxnHome2').addEventListener('click', openModal);
+    document.getElementById('btnAddTxn').addEventListener('click', openModal);
+
+    // ======= Form population =======
+    function populateSelect(el, items, includeAll=false){
+      el.innerHTML = '';
+      if(includeAll){
+        const opt = document.createElement('option');
+        opt.value = ''; opt.textContent = 'All';
+        el.appendChild(opt);
+      }
+      items.forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.id; opt.textContent = x.name;
+        el.appendChild(opt);
+      });
+    }
+
+    // Form elements
+    const fPaymentMethod = document.getElementById('fPaymentMethod');
+    const fCategory = document.getElementById('fCategory');
+    const fPerson = document.getElementById('fPerson');
+    const fDate = document.getElementById('fDate');
+    const fAmount = document.getElementById('fAmount');
+    const fNotes = document.getElementById('fNotes');
+    const fCard = document.getElementById('fCard');
+    const cardField = document.getElementById('cardField');
+
+    function refreshFormLists(){
+      populateSelect(fPaymentMethod, state.paymentMethods);
+      populateSelect(fCategory, state.categories);
+      populateSelect(fPerson, state.people);
+      populateSelect(fCard, state.cards);
+    }
+    refreshFormLists();
+
+    // Show card selection only if payment is "Credit Card"
+    fPaymentMethod.addEventListener('change', () => {
+      const pm = state.paymentMethods.find(x => x.id === fPaymentMethod.value);
+      if(pm && pm.name.toLowerCase() === 'credit card'){
+        cardField.style.display = '';
+      }else{
+        cardField.style.display = 'none';
+        fCard.value = '';
+      }
+    });
+
+    // ======= Add Transaction =======
+    document.getElementById('txnForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pm = state.paymentMethods.find(x => x.id === fPaymentMethod.value);
+      if(pm && pm.name.toLowerCase() === 'credit card' && !fCard.value){
+        alert('Please select a credit card for Credit Card payments.');
+        return;
+      }
+      const txn = {
+        id: uid(),
+        date: fDate.value || todayStr(),
+        amount: Number(fAmount.value || 0),
+        categoryId: fCategory.value,
+        personId: fPerson.value,
+        paymentMethodId: fPaymentMethod.value,
+        cardId: (pm && pm.name.toLowerCase() === 'credit card') ? fCard.value : '',
+        notes: fNotes.value?.trim() || ''
+      };
+      if(txn.amount <= 0){ alert('Amount must be greater than 0'); return; }
+      state.transactions.push(txn);
+      saveState();
+      closeModal();
+    });
+
+    function resetForm(){
+      fPaymentMethod.value = state.paymentMethods[0]?.id || '';
+      fCategory.value = state.categories[0]?.id || '';
+      fPerson.value = state.people[0]?.id || '';
+      fDate.value = todayStr();
+      fAmount.value = '';
+      fNotes.value = '';
+      fCard.value = '';
+      cardField.style.display = 'none';
+    }
+    document.getElementById('btnResetForm').addEventListener('click', resetForm);
+
+    // ======= Transactions View =======
+    const filterPaymentMethod = document.getElementById('filterPaymentMethod');
+    const filterCategory = document.getElementById('filterCategory');
+    const filterPerson = document.getElementById('filterPerson');
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
+    const btnClearFilters = document.getElementById('btnClearFilters');
+    const txnTableBody = document.querySelector('#txnTable tbody');
+    const txnEmpty = document.getElementById('txnEmpty');
+
+    function refreshFilters(){
+      populateSelect(filterPaymentMethod, state.paymentMethods, true);
+      populateSelect(filterCategory, state.categories, true);
+      populateSelect(filterPerson, state.people, true);
+    }
+    refreshFilters();
+
+    function applyTxnFilters(list){
+      const pm = filterPaymentMethod.value;
+      const cat = filterCategory.value;
+      const person = filterPerson.value;
+      const from = filterFrom.value ? new Date(filterFrom.value) : null;
+      const to = filterTo.value ? new Date(filterTo.value) : null;
+      return list.filter(t => {
+        const tDate = new Date(t.date);
+        return (!pm || t.paymentMethodId === pm)
+            && (!cat || t.categoryId === cat)
+            && (!person || t.personId === person)
+            && (!from || tDate >= from)
+            && (!to || tDate <= to);
+      });
+    }
+
+    function renderTransactions(){
+      const filtered = applyTxnFilters(state.transactions);
+      txnTableBody.innerHTML = '';
+      filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.date}</td>
+          <td>${nameById(state.people,t.personId)}</td>
+          <td>${nameById(state.categories,t.categoryId)}</td>
+          <td>${nameById(state.paymentMethods,t.paymentMethodId)}</td>
+          <td>${nameById(state.cards,t.cardId)}</td>
+          <td class="rupee">${fmtINR(t.amount)}</td>
+          <td>${t.notes || ''}</td>
+          <td>
+            <button class="btn small danger" data-del="${t.id}">Delete</button>
+          </td>
+        `;
+        txnTableBody.appendChild(tr);
+      });
+      txnEmpty.style.display = filtered.length ? 'none' : '';
+      // wire delete
+      txnTableBody.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-del');
+          state.transactions = state.transactions.filter(x => x.id !== id);
+          saveState();
+        });
+      });
+    }
+
+    [filterPaymentMethod, filterCategory, filterPerson, filterFrom, filterTo].forEach(el => {
+      el.addEventListener('change', renderTransactions);
+    });
+    btnClearFilters.addEventListener('click', () => {
+      filterPaymentMethod.value = '';
+      filterCategory.value = '';
+      filterPerson.value = '';
+      filterFrom.value = '';
+      filterTo.value = '';
+      renderTransactions();
+    });
+
+    // Export / Import
+    document.getElementById('btnExport').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'expense-tracker-data.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById('importFile').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const imported = JSON.parse(reader.result);
+          if(!imported || typeof imported !== 'object') throw new Error('Invalid file');
+          state = {...defaultState, ...imported};
+          saveState();
+          alert('Import successful');
+        }catch(err){
+          alert('Import failed: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // ======= Analytics =======
+    const anTotal = document.getElementById('an-total');
+    const anTotalCount = document.getElementById('an-total-count');
+    const anTopCategory = document.getElementById('an-top-category');
+    const anCategoryDesc = document.getElementById('an-category-desc');
+    const anTopPayment = document.getElementById('an-top-payment');
+    const anPaymentDesc = document.getElementById('an-payment-desc');
+    const anTopPerson = document.getElementById('an-top-person');
+    const anPersonDesc = document.getElementById('an-person-desc');
+    const analyticsStats = document.getElementById('analytics-stats');
+
+    const analyticsDrill = document.getElementById('analytics-drill');
+    const drillTitle = document.getElementById('drill-title');
+    const drillTableBody = document.querySelector('#drillTable tbody');
+    const drillEmpty = document.getElementById('drillEmpty');
+    document.getElementById('btnCloseDrill').addEventListener('click', () => analyticsDrill.style.display = 'none');
+
+    function groupSum(list, key){
+      const m = new Map();
+      for(const t of list){
+        const k = key(t);
+        m.set(k, (m.get(k) || 0) + t.amount);
+      }
+      return m; // Map of key -> amount
+    }
+    function renderAnalytics(){
+      const txns = state.transactions;
+      const total = txns.reduce((s,t) => s + t.amount, 0);
+      anTotal.textContent = fmtINR(total);
+      anTotalCount.textContent = `${txns.length} transaction${txns.length===1?'':'s'}`;
+
+      // By Category
+      const gCat = groupSum(txns, t => nameById(state.categories, t.categoryId));
+      const topCat = [...gCat.entries()].sort((a,b)=>b[1]-a[1])[0];
+      anTopCategory.textContent = topCat ? `${topCat[0]} — ${fmtINR(topCat[1])}` : '—';
+      anCategoryDesc.textContent = topCat ? `${gCat.size} categor${gCat.size===1?'y':'ies'} recorded` : 'Click to view breakdown';
+
+      // By Payment Method
+      const gPay = groupSum(txns, t => nameById(state.paymentMethods, t.paymentMethodId));
+      const topPay = [...gPay.entries()].sort((a,b)=>b[1]-a[1])[0];
+      anTopPayment.textContent = topPay ? `${topPay[0]} — ${fmtINR(topPay[1])}` : '—';
+      anPaymentDesc.textContent = topPay ? `${gPay.size} method${gPay.size===1?'':'s'} recorded` : 'Click to view breakdown';
+
+      // By Person
+      const gPerson = groupSum(txns, t => nameById(state.people, t.personId));
+      const topPerson = [...gPerson.entries()].sort((a,b)=>b[1]-a[1])[0];
+      anTopPerson.textContent = topPerson ? `${topPerson[0]} — ${fmtINR(topPerson[1])}` : '—';
+      anPersonDesc.textContent = topPerson ? `${gPerson.size} person${gPerson.size===1?'':'s'} recorded` : 'Click to view breakdown';
+    }
+
+    analyticsStats.addEventListener('click', (e) => {
+      const host = e.target.closest('.stat');
+      if(!host) return;
+      const type = host.getAttribute('data-analytics');
+      const txns = state.transactions;
+      analyticsDrill.style.display = '';
+      let rows = [];
+      if(type === 'total'){
+        drillTitle.textContent = 'All Transactions';
+        rows = txns;
+      }else if(type === 'category'){
+        drillTitle.textContent = 'Breakdown: Category';
+        // show sorted by category total
+        const totals = groupSum(txns, t => nameById(state.categories,t.categoryId));
+        const sorter = [...totals.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+        rows = [...txns].sort((a,b)=> sorter.indexOf(nameById(state.categories,b.categoryId)) - sorter.indexOf(nameById(state.categories,a.categoryId)));
+      }else if(type === 'payment'){
+        drillTitle.textContent = 'Breakdown: Payment Method';
+        const totals = groupSum(txns, t => nameById(state.paymentMethods,t.paymentMethodId));
+        const sorter = [...totals.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+        rows = [...txns].sort((a,b)=> sorter.indexOf(nameById(state.paymentMethods,b.paymentMethodId)) - sorter.indexOf(nameById(state.paymentMethods,a.paymentMethodId)));
+      }else if(type === 'person'){
+        drillTitle.textContent = 'Breakdown: Person';
+        const totals = groupSum(txns, t => nameById(state.people,t.personId));
+        const sorter = [...totals.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+        rows = [...txns].sort((a,b)=> sorter.indexOf(nameById(state.people,b.personId)) - sorter.indexOf(nameById(state.people,a.personId)));
+      }
+      renderDrill(rows);
+    });
+    function renderDrill(list){
+      drillTableBody.innerHTML = '';
+      list.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.date}</td>
+          <td>${nameById(state.people,t.personId)}</td>
+          <td>${nameById(state.categories,t.categoryId)}</td>
+          <td>${nameById(state.paymentMethods,t.paymentMethodId)}</td>
+          <td>${nameById(state.cards,t.cardId)}</td>
+          <td class="rupee">${fmtINR(t.amount)}</td>
+          <td>${t.notes || ''}</td>
+        `;
+        drillTableBody.appendChild(tr);
+      });
+      drillEmpty.style.display = list.length ? 'none' : '';
+    }
+
+    // ======= Credit Cards =======
+    const cardsList = document.getElementById('cardsList');
+    const cardsEmpty = document.getElementById('cardsEmpty');
+    const btnCloseCardTxns = document.getElementById('btnCloseCardTxns');
+    const cardTransactionsPanel = document.getElementById('cardTransactionsPanel');
+    const cardTxnTitle = document.getElementById('cardTxnTitle');
+    const cardTxnTableBody = document.querySelector('#cardTxnTable tbody');
+    const cardTxnEmpty = document.getElementById('cardTxnEmpty');
+
+    document.getElementById('btnAddCard').addEventListener('click', () => {
+      const name = prompt('Card name (e.g., HDFC Visa)');
+      if(!name) return;
+      const last4 = prompt('Last 4 digits (optional)');
+      state.cards.push({id: uid(), name: name.trim(), last4: last4?.trim() || ''});
+      saveState();
+    });
+
+    function renderCards(){
+      cardsList.innerHTML = '';
+      if(state.cards.length === 0){ cardsEmpty.style.display = ''; return; }
+      cardsEmpty.style.display = 'none';
+      state.cards.forEach(card => {
+        const txnsForCard = state.transactions.filter(t => t.cardId === card.id);
+        const sum = txnsForCard.reduce((s,t)=>s+t.amount,0);
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `
+          <div class="section-title">
+            <h3>${card.name} ${card.last4 ? `<span class="muted">•${card.last4}</span>`:''}</h3>
+            <div class="row">
+              <button class="btn secondary small" data-view="${card.id}">View Transactions</button>
+              <button class="btn danger small" data-del="${card.id}">Remove</button>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top:8px">
+            <div class="stat">
+              <div class="muted">Total Spends</div>
+              <div class="value rupee">${fmtINR(sum)}</div>
+            </div>
+            <div class="stat">
+              <div class="muted">Transactions</div>
+              <div class="value">${txnsForCard.length}</div>
+            </div>
+            <div class="stat">
+              <div class="muted">Avg txn</div>
+              <div class="value rupee">${fmtINR(txnsForCard.length ? sum/txnsForCard.length : 0)}</div>
+            </div>
+          </div>
+        `;
+        cardsList.appendChild(div);
+      });
+
+      // wire buttons
+      cardsList.querySelectorAll('button[data-view]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-view');
+          const card = state.cards.find(c => c.id === id);
+          const txns = state.transactions.filter(t => t.cardId === id);
+          cardTxnTitle.textContent = `Transactions — ${card.name}`;
+          cardTxnTableBody.innerHTML = '';
+          txns.sort((a,b)=> new Date(b.date)-new Date(a.date)).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${t.date}</td>
+              <td>${nameById(state.people,t.personId)}</td>
+              <td>${nameById(state.categories,t.categoryId)}</td>
+              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td>${t.notes || ''}</td>
+            `;
+            cardTxnTableBody.appendChild(tr);
+          });
+          cardTxnEmpty.style.display = txns.length ? 'none' : '';
+          cardTransactionsPanel.style.display = '';
+        });
+      });
+      cardsList.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-del');
+          if(!confirm('Remove this card? Transactions linked to it will keep the cardId, but the card will be gone.')) return;
+          state.cards = state.cards.filter(c => c.id !== id);
+          saveState();
+        });
+      });
+    }
+    btnCloseCardTxns.addEventListener('click', () => cardTransactionsPanel.style.display = 'none');
+
+    // ======= Users =======
+    const usersList = document.getElementById('usersList');
+    const usersEmpty = document.getElementById('usersEmpty');
+    const btnClosePersonTxns = document.getElementById('btnClosePersonTxns');
+    const personTransactionsPanel = document.getElementById('personTransactionsPanel');
+    const personTxnTitle = document.getElementById('personTxnTitle');
+    const personTxnTableBody = document.querySelector('#personTxnTable tbody');
+    const personTxnEmpty = document.getElementById('personTxnEmpty');
+
+    document.getElementById('btnAddPerson').addEventListener('click', () => {
+      const name = prompt('Person name');
+      if(!name) return;
+      state.people.push({id: uid(), name: name.trim()});
+      saveState();
+    });
+
+    function renderUsers(){
+      usersList.innerHTML = '';
+      if(state.people.length === 0){ usersEmpty.style.display = ''; return; }
+      usersEmpty.style.display = 'none';
+      state.people.forEach(p => {
+        const txns = state.transactions.filter(t => t.personId === p.id);
+        const sum = txns.reduce((s,t)=>s+t.amount,0);
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `
+          <div class="section-title">
+            <h3>${p.name}</h3>
+            <div class="row">
+              <button class="btn secondary small" data-view="${p.id}">View Transactions</button>
+              <button class="btn danger small" data-del="${p.id}">Remove</button>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top:8px">
+            <div class="stat"><div class="muted">Total Spends</div><div class="value rupee">${fmtINR(sum)}</div></div>
+            <div class="stat"><div class="muted">Transactions</div><div class="value">${txns.length}</div></div>
+            <div class="stat"><div class="muted">Avg txn</div><div class="value rupee">${fmtINR(txns.length ? sum/txns.length : 0)}</div></div>
+          </div>
+        `;
+        usersList.appendChild(div);
+      });
+      usersList.querySelectorAll('button[data-view]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-view');
+          const person = state.people.find(x => x.id === id);
+          const txns = state.transactions.filter(t => t.personId === id);
+          personTxnTitle.textContent = `Transactions — ${person.name}`;
+          personTxnTableBody.innerHTML = '';
+          txns.sort((a,b)=> new Date(b.date)-new Date(a.date)).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${t.date}</td>
+              <td>${nameById(state.categories,t.categoryId)}</td>
+              <td>${nameById(state.paymentMethods,t.paymentMethodId)} ${t.cardId ? '('+nameById(state.cards,t.cardId)+')':''}</td>
+              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td>${t.notes || ''}</td>
+            `;
+            personTxnTableBody.appendChild(tr);
+          });
+          personTxnEmpty.style.display = txns.length ? 'none' : '';
+          personTransactionsPanel.style.display = '';
+        });
+      });
+      usersList.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-del');
+          if(!confirm('Remove this person? Their transactions will remain (but show name as —).')) return;
+          state.people = state.people.filter(x => x.id !== id);
+          saveState();
+        });
+      });
+    }
+    btnClosePersonTxns.addEventListener('click', () => personTransactionsPanel.style.display = 'none');
+
+    // ======= Monthly Summary =======
+    const msPerson = document.getElementById('msPerson');
+    const msPayment = document.getElementById('msPayment');
+    const msFrom = document.getElementById('msFrom');
+    const msTo = document.getElementById('msTo');
+    const btnClearMS = document.getElementById('btnClearMS');
+    const monthlyTableBody = document.querySelector('#monthlyTable tbody');
+    const monthlyEmpty = document.getElementById('monthlyEmpty');
+    const monthlyDrill = document.getElementById('monthlyDrill');
+    const monthlyDrillTitle = document.getElementById('monthlyDrillTitle');
+    const monthlyDrillTableBody = document.querySelector('#monthlyDrillTable tbody');
+    const monthlyDrillEmpty = document.getElementById('monthlyDrillEmpty');
+
+    function refreshMonthlyFilters(){
+      populateSelect(msPerson, state.people, true);
+      populateSelect(msPayment, state.paymentMethods, true);
+    }
+    btnClearMS.addEventListener('click', () => {
+      msPerson.value = ''; msPayment.value = ''; msFrom.value = ''; msTo.value = '';
+      renderMonthly();
+    });
+
+    function renderMonthly(){
+      let list = [...state.transactions];
+      if(msPerson.value) list = list.filter(t => t.personId === msPerson.value);
+      if(msPayment.value) list = list.filter(t => t.paymentMethodId === msPayment.value);
+      if(msFrom.value) list = list.filter(t => new Date(t.date) >= new Date(msFrom.value));
+      if(msTo.value) list = list.filter(t => new Date(t.date) <= new Date(msTo.value));
+
+      const groups = new Map();
+      for(const t of list){
+        const k = monthKey(t.date);
+        const cur = groups.get(k) || {total:0, count:0, items:[]};
+        cur.total += t.amount; cur.count += 1; cur.items.push(t);
+        groups.set(k, cur);
+      }
+      const rows = [...groups.entries()].sort((a,b) => a[0].localeCompare(b[0]));
+      monthlyTableBody.innerHTML = '';
+      rows.forEach(([k,info]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${k}</td>
+          <td class="rupee">${fmtINR(info.total)}</td>
+          <td>${info.count}</td>
+          <td><button class="btn small secondary" data-month="${k}">View</button></td>
+        `;
+        monthlyTableBody.appendChild(tr);
+      });
+      monthlyEmpty.style.display = rows.length ? 'none' : '';
+
+      // wire drill buttons
+      monthlyTableBody.querySelectorAll('button[data-month]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.getAttribute('data-month');
+          const info = groups.get(k);
+          monthlyDrillTitle.textContent = `Transactions — ${k}`;
+          monthlyDrillTableBody.innerHTML = '';
+          info.items.sort((a,b)=> new Date(b.date)-new Date(a.date)).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${t.date}</td>
+              <td>${nameById(state.people,t.personId)}</td>
+              <td>${nameById(state.categories,t.categoryId)}</td>
+              <td>${nameById(state.paymentMethods,t.paymentMethodId)} ${t.cardId ? '('+nameById(state.cards,t.cardId)+')':''}</td>
+              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td>${t.notes || ''}</td>
+            `;
+            monthlyDrillTableBody.appendChild(tr);
+          });
+          monthlyDrillEmpty.style.display = info.items.length ? 'none' : '';
+          monthlyDrill.style.display = '';
+        });
+      });
+    }
+    document.getElementById('btnCloseMonthlyDrill').addEventListener('click', () => monthlyDrill.style.display = 'none');
+
+    // ======= Settings (Payment Methods & Categories) =======
+    const paymentList = document.getElementById('paymentList');
+    const paymentEmpty = document.getElementById('paymentEmpty');
+    const categoryList = document.getElementById('categoryList');
+    const categoryEmpty = document.getElementById('categoryEmpty');
+
+    document.getElementById('btnAddPayment').addEventListener('click', () => {
+      const name = prompt('Payment Method name');
+      if(!name) return;
+      state.paymentMethods.push({id:uid(), name:name.trim()});
+      saveState(); refreshFormLists(); refreshFilters(); refreshMonthlyFilters();
+    });
+    document.getElementById('btnAddCategory').addEventListener('click', () => {
+      const name = prompt('Category name');
+      if(!name) return;
+      state.categories.push({id:uid(), name:name.trim()});
+      saveState(); refreshFormLists(); refreshFilters();
+    });
+
+    function renderSettings(){
+      // Payment methods
+      paymentList.innerHTML = '';
+      if(state.paymentMethods.length === 0){ paymentEmpty.style.display = ''; } else {
+        paymentEmpty.style.display = 'none';
+        state.paymentMethods.forEach(pm => {
+          const div = document.createElement('div');
+          div.className = 'row';
+          div.style.cssText = 'justify-content:space-between; border-bottom:1px solid var(--border); padding:8px 0;';
+          div.innerHTML = `
+            <div class="row" style="gap:8px">
+              <span class="chip">${pm.name}</span>
+              ${pm.name.toLowerCase()==='credit card' ? '<span class="pill warn">Linked to Cards</span>':''}
+            </div>
+            <button class="btn small danger" data-delpm="${pm.id}">Delete</button>
+          `;
+          paymentList.appendChild(div);
+        });
+        paymentList.querySelectorAll('button[data-delpm]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delpm');
+            if(!confirm('Delete this payment method? Transactions using it will display name as —.')) return;
+            state.paymentMethods = state.paymentMethods.filter(x => x.id !== id);
+            saveState(); refreshFormLists(); refreshFilters(); refreshMonthlyFilters();
+          });
+        });
+      }
+
+      // Categories
+      categoryList.innerHTML = '';
+      if(state.categories.length === 0){ categoryEmpty.style.display = ''; } else {
+        categoryEmpty.style.display = 'none';
+        state.categories.forEach(cat => {
+          const div = document.createElement('div');
+          div.className = 'row';
+          div.style.cssText = 'justify-content:space-between; border-bottom:1px solid var(--border); padding:8px 0;';
+          div.innerHTML = `
+            <span class="chip">${cat.name}</span>
+            <button class="btn small danger" data-delcat="${cat.id}">Delete</button>
+          `;
+          categoryList.appendChild(div);
+        });
+        categoryList.querySelectorAll('button[data-delcat]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delcat');
+            if(!confirm('Delete this category? Transactions using it will display name as —.')) return;
+            state.categories = state.categories.filter(x => x.id !== id);
+            saveState(); refreshFormLists(); refreshFilters();
+          });
+        });
+      }
+    }
+
+    // ======= Home Stats =======
+    const homeStats = document.getElementById('home-stats');
+    function renderHome(){
+      const txns = state.transactions;
+      const total = txns.reduce((s,t)=>s+t.amount,0);
+      const thisMonthKey = monthKey(todayStr());
+      const monthTotal = txns.filter(t => monthKey(t.date) === thisMonthKey).reduce((s,t)=>s+t.amount,0);
+      const peopleCount = state.people.length;
+      homeStats.innerHTML = `
+        <div class="stat"><div class="muted">Total Spend (All time)</div><div class="value rupee">${fmtINR(total)}</div></div>
+        <div class="stat"><div class="muted">This Month</div><div class="value rupee">${fmtINR(monthTotal)}</div></div>
+        <div class="stat"><div class="muted">People Tracked</div><div class="value">${peopleCount}</div></div>
+      `;
+    }
+
+    // ======= Render All =======
+    function renderAll(){
+      refreshFormLists();
+      refreshFilters();
+      refreshMonthlyFilters();
+      renderTransactions();
+      renderAnalytics();
+      renderCards();
+      renderUsers();
+      renderMonthly();
+      renderSettings();
+      renderHome();
+    }
+    renderAll();
+
+    // ======= Quality-of-life: keyboard =======
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){ closeModal(); monthlyDrill.style.display = 'none'; analyticsDrill.style.display = 'none'; cardTransactionsPanel.style.display = 'none'; personTransactionsPanel.style.display = 'none'; }
+    });
+  </script>
+</body>
+</html>
