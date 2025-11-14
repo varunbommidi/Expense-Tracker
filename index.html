@@ -114,8 +114,9 @@
     <div class="container">
       <div class="title-row">
         <div>
-          <h1>Xpense Tracker</h1> <h6>your Xpense buddy</h6>
-          <h6>dev by varunnn😊</h6>
+          <h1>Xpense Tracker</h1>
+	    <h6>your Xpense buddy</h6>
+          <h6>Dev by Varunn😊❤️</h6>
         </div>
         <div class="row">
           <button class="btn" id="btnAddTxnHome">Add Transaction</button>
@@ -141,7 +142,8 @@
           <h3>Hello there... pookie👋</h3>
           <button class="btn" id="btnAddTxnHome2">Add Transaction</button>
         </div>
-        <p class="muted">Track expenses in INR, filter by People, Payment Methods, Categories, and analyze monthly spends.</p>
+        <p class="muted">Track expenses with filters and analytics.Filter by People, Payment Methods, Categories and analyze monthly spends.
+ Currency formatting is configurable in Settings.</p>
         <div class="grid cols-3" id="home-stats"></div>
       </div>
     </section>
@@ -197,7 +199,7 @@
                 <th>Category</th>
                 <th>Payment</th>
                 <th>Card</th>
-                <th class="rupee">Amount (₹)</th>
+                <th id="txnAmountHeader" class="rupee">Amount</th>
                 <th>Notes</th>
                 <th>Actions</th>
               </tr>
@@ -214,7 +216,7 @@
       <div class="panel">
         <div class="section-title">
           <h3>Analytics</h3>
-          <span class="pill">Currency: INR</span>
+          <span class="pill" id="currencyPill">Currency: INR</span>
         </div>
         <div class="grid cols-3" id="analytics-stats">
           <!-- Total Spend -->
@@ -253,7 +255,7 @@
             <thead>
               <tr>
                 <th>Date</th><th>Person</th><th>Category</th><th>Payment</th><th>Card</th>
-                <th class="rupee">Amount (₹)</th><th>Notes</th>
+                <th id="drillAmountHeader" class="rupee">Amount</th><th>Notes</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -284,7 +286,7 @@
           <table id="cardTxnTable">
             <thead>
               <tr>
-                <th>Date</th><th>Person</th><th>Category</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+                <th>Date</th><th>Person</th><th>Category</th><th id="cardTxnAmountHeader" class="rupee">Amount</th><th>Notes</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -312,7 +314,7 @@
           <table id="personTxnTable">
             <thead>
               <tr>
-                <th>Date</th><th>Category</th><th>Payment</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+                <th>Date</th><th>Category</th><th>Payment</th><th id="personTxnAmountHeader" class="rupee">Amount</th><th>Notes</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -357,7 +359,7 @@
           <table id="monthlyTable">
             <thead>
               <tr>
-                <th>Month</th><th class="rupee">Total (₹)</th><th>Count</th><th>Actions</th>
+                <th>Month</th><th id="monthlyAmountHeader" class="rupee">Total</th><th>Count</th><th>Actions</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -373,7 +375,7 @@
           <table id="monthlyDrillTable">
             <thead>
               <tr>
-                <th>Date</th><th>Person</th><th>Category</th><th>Payment</th><th class="rupee">Amount (₹)</th><th>Notes</th>
+                <th>Date</th><th>Person</th><th>Category</th><th>Payment</th><th id="monthlyDrillAmountHeader" class="rupee">Amount</th><th>Notes</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -407,6 +409,29 @@
             </div>
             <div id="categoryList"></div>
             <div id="categoryEmpty" class="no-data" style="display:none">No categories.</div>
+          </div>
+        </div>
+
+        <!-- Currency Settings -->
+        <div class="panel">
+          <div class="section-title">
+            <h3>Currency</h3>
+          </div>
+
+          <div class="grid cols-2">
+            <div class="field">
+              <label>Choose display currency</label>
+              <select id="currencySelect"></select>
+            </div>
+            <div class="field">
+              <label>Preview</label>
+              <input id="currencyPreview" type="text" readonly />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="btnSaveCurrency">Save Currency</button>
+            <span class="muted">Formats amounts only (no conversion).</span>
           </div>
         </div>
       </div>
@@ -443,11 +468,12 @@
 
           <div class="field">
             <label>Date</label>
+            <!-- max date set by JS to today -->
             <input type="date" id="fDate" required />
           </div>
 
           <div class="field">
-            <label>Amount (INR)</label>
+            <label>Amount</label>
             <input type="number" id="fAmount" step="0.01" min="0" required />
           </div>
         </div>
@@ -461,14 +487,13 @@
           <button class="btn" type="submit" id="btnSubmitTxn">Save</button>
           <button class="btn secondary" type="button" id="btnResetForm">Reset</button>
         </div>
-        <div class="muted" style="margin-top:8px">Currency: INR (₹). All amounts saved in INR.</div>
+        <div class="muted" id="currencyNote" style="margin-top:8px">Currency: INR — amounts are formatted accordingly.</div>
       </form>
     </div>
   </div>
 
   <script>
     // ======= Utility =======
-    const fmtINR = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n ?? 0);
     const todayStr = () => new Date().toISOString().slice(0,10);
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const monthKey = (dateStr) => {
@@ -477,10 +502,37 @@
     };
     const nameById = (arr,id) => (arr.find(x => x.id === id)?.name) || '—';
 
+    // Top 10 countries' currencies (country + flag + symbol + code + locale)
+    const CURRENCIES = [
+      { country: 'India',          flag: '🇮🇳', code: 'INR', symbol: '₹',   locale: 'en-IN' },
+      { country: 'United States',  flag: '🇺🇸', code: 'USD', symbol: '$',   locale: 'en-US' },
+      { country: 'Eurozone',       flag: '🇪🇺', code: 'EUR', symbol: '€',   locale: 'en-IE' },
+      { country: 'United Kingdom', flag: '🇬🇧', code: 'GBP', symbol: '£',   locale: 'en-GB' },
+      { country: 'Japan',          flag: '🇯🇵', code: 'JPY', symbol: '¥',   locale: 'ja-JP' },
+      { country: 'China',          flag: '🇨🇳', code: 'CNY', symbol: '¥',   locale: 'zh-CN' },
+      { country: 'Australia',      flag: '🇦🇺', code: 'AUD', symbol: '$',   locale: 'en-AU' },
+      { country: 'Canada',         flag: '🇨🇦', code: 'CAD', symbol: '$',   locale: 'en-CA' },
+      { country: 'Singapore',      flag: '🇸🇬', code: 'SGD', symbol: '$',   locale: 'en-SG' },
+      { country: 'United Arab Emirates', flag: '🇦🇪', code: 'AED', symbol: 'د.إ', locale: 'ar-AE' },
+    ];
+    const getCurrency = (code) => CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+
+    // Generic currency formatter using selected currency + locale
+    const fmtCurrency = (n) => {
+      const cur = getCurrency(state.currencyCode || 'INR');
+      try {
+        return new Intl.NumberFormat(cur.locale || 'en-IN', { style: 'currency', currency: cur.code })
+          .format(n ?? 0);
+      } catch {
+        return `${cur.symbol} ${(n ?? 0).toFixed(2)}`;
+      }
+    };
+
     // ======= State & Persistence =======
     const STORAGE_KEY = 'expenseTrackerData_v1';
     const defaultState = {
-      currency: 'INR',
+      currency: 'INR',        // legacy
+      currencyCode: 'INR',    // active display currency
       people: [{id: uid(), name: 'Varun'}],
       paymentMethods: [
         {id: uid(), name: 'Credit Card'},
@@ -505,6 +557,7 @@
         // Ensure essential arrays exist
         ['people','paymentMethods','categories','cards','transactions'].forEach(k => parsed[k] ||= []);
         parsed.currency ||= 'INR';
+        parsed.currencyCode ||= parsed.currency || 'INR';
         return parsed;
       }catch(e){
         console.warn('Failed to load state:', e);
@@ -529,14 +582,28 @@
 
     // ======= Modal handling =======
     const modalBackdrop = document.getElementById('modalBackdrop');
-    const openModal = () => { modalBackdrop.classList.add('show'); document.getElementById('fDate').value ||= todayStr(); };
+    const openModal = () => {
+      modalBackdrop.classList.add('show');
+      // set today's date as default + max (prevent future)
+      fDate.value = todayStr();
+      fDate.setAttribute('max', todayStr());
+    };
     const closeModal = () => { modalBackdrop.classList.remove('show'); resetForm(); };
     document.getElementById('btnCloseModal').addEventListener('click', closeModal);
     document.getElementById('btnAddTxnHome').addEventListener('click', openModal);
     document.getElementById('btnAddTxnHome2').addEventListener('click', openModal);
     document.getElementById('btnAddTxn').addEventListener('click', openModal);
 
-    // ======= Form population =======
+    // ======= Form elements =======
+    const fPaymentMethod = document.getElementById('fPaymentMethod');
+    const fCategory = document.getElementById('fCategory');
+    const fPerson = document.getElementById('fPerson');
+    const fDate = document.getElementById('fDate');
+    const fAmount = document.getElementById('fAmount');
+    const fNotes = document.getElementById('fNotes');
+    const fCard = document.getElementById('fCard');
+    const cardField = document.getElementById('cardField');
+
     function populateSelect(el, items, includeAll=false){
       el.innerHTML = '';
       if(includeAll){
@@ -551,21 +618,13 @@
       });
     }
 
-    // Form elements
-    const fPaymentMethod = document.getElementById('fPaymentMethod');
-    const fCategory = document.getElementById('fCategory');
-    const fPerson = document.getElementById('fPerson');
-    const fDate = document.getElementById('fDate');
-    const fAmount = document.getElementById('fAmount');
-    const fNotes = document.getElementById('fNotes');
-    const fCard = document.getElementById('fCard');
-    const cardField = document.getElementById('cardField');
-
     function refreshFormLists(){
       populateSelect(fPaymentMethod, state.paymentMethods);
       populateSelect(fCategory, state.categories);
       populateSelect(fPerson, state.people);
       populateSelect(fCard, state.cards);
+      // enforce max date on load
+      fDate.setAttribute('max', todayStr());
     }
     refreshFormLists();
 
@@ -580,9 +639,18 @@
       }
     });
 
-    // ======= Add Transaction =======
+    // ======= Add Transaction (with future-date prevention) =======
     document.getElementById('txnForm').addEventListener('submit', (e) => {
       e.preventDefault();
+
+      // Date must not be in the future
+      const selectedDate = new Date(fDate.value);
+      const today = new Date(todayStr());
+      if (selectedDate > today) {
+        alert('Date cannot be in the future.');
+        return;
+      }
+
       const pm = state.paymentMethods.find(x => x.id === fPaymentMethod.value);
       if(pm && pm.name.toLowerCase() === 'credit card' && !fCard.value){
         alert('Please select a credit card for Credit Card payments.');
@@ -609,6 +677,7 @@
       fCategory.value = state.categories[0]?.id || '';
       fPerson.value = state.people[0]?.id || '';
       fDate.value = todayStr();
+      fDate.setAttribute('max', todayStr());
       fAmount.value = '';
       fNotes.value = '';
       fCard.value = '';
@@ -660,7 +729,7 @@
           <td>${nameById(state.categories,t.categoryId)}</td>
           <td>${nameById(state.paymentMethods,t.paymentMethodId)}</td>
           <td>${nameById(state.cards,t.cardId)}</td>
-          <td class="rupee">${fmtINR(t.amount)}</td>
+          <td class="rupee">${fmtCurrency(t.amount)}</td>
           <td>${t.notes || ''}</td>
           <td>
             <button class="btn small danger" data-del="${t.id}">Delete</button>
@@ -709,6 +778,8 @@
           const imported = JSON.parse(reader.result);
           if(!imported || typeof imported !== 'object') throw new Error('Invalid file');
           state = {...defaultState, ...imported};
+          // ensure currency fields exist
+          state.currencyCode ||= state.currency || 'INR';
           saveState();
           alert('Import successful');
         }catch(err){
@@ -728,6 +799,7 @@
     const anTopPerson = document.getElementById('an-top-person');
     const anPersonDesc = document.getElementById('an-person-desc');
     const analyticsStats = document.getElementById('analytics-stats');
+    const currencyPill = document.getElementById('currencyPill');
 
     const analyticsDrill = document.getElementById('analytics-drill');
     const drillTitle = document.getElementById('drill-title');
@@ -746,25 +818,29 @@
     function renderAnalytics(){
       const txns = state.transactions;
       const total = txns.reduce((s,t) => s + t.amount, 0);
-      anTotal.textContent = fmtINR(total);
+      anTotal.textContent = fmtCurrency(total);
       anTotalCount.textContent = `${txns.length} transaction${txns.length===1?'':'s'}`;
+
+      // Currency pill
+      const cur = getCurrency(state.currencyCode);
+      currencyPill.textContent = `Currency: ${cur.symbol} ${state.currencyCode}`;
 
       // By Category
       const gCat = groupSum(txns, t => nameById(state.categories, t.categoryId));
       const topCat = [...gCat.entries()].sort((a,b)=>b[1]-a[1])[0];
-      anTopCategory.textContent = topCat ? `${topCat[0]} — ${fmtINR(topCat[1])}` : '—';
+      anTopCategory.textContent = topCat ? `${topCat[0]} — ${fmtCurrency(topCat[1])}` : '—';
       anCategoryDesc.textContent = topCat ? `${gCat.size} categor${gCat.size===1?'y':'ies'} recorded` : 'Click to view breakdown';
 
       // By Payment Method
       const gPay = groupSum(txns, t => nameById(state.paymentMethods, t.paymentMethodId));
       const topPay = [...gPay.entries()].sort((a,b)=>b[1]-a[1])[0];
-      anTopPayment.textContent = topPay ? `${topPay[0]} — ${fmtINR(topPay[1])}` : '—';
+      anTopPayment.textContent = topPay ? `${topPay[0]} — ${fmtCurrency(topPay[1])}` : '—';
       anPaymentDesc.textContent = topPay ? `${gPay.size} method${gPay.size===1?'':'s'} recorded` : 'Click to view breakdown';
 
       // By Person
       const gPerson = groupSum(txns, t => nameById(state.people, t.personId));
       const topPerson = [...gPerson.entries()].sort((a,b)=>b[1]-a[1])[0];
-      anTopPerson.textContent = topPerson ? `${topPerson[0]} — ${fmtINR(topPerson[1])}` : '—';
+      anTopPerson.textContent = topPerson ? `${topPerson[0]} — ${fmtCurrency(topPerson[1])}` : '—';
       anPersonDesc.textContent = topPerson ? `${gPerson.size} person${gPerson.size===1?'':'s'} recorded` : 'Click to view breakdown';
     }
 
@@ -780,7 +856,6 @@
         rows = txns;
       }else if(type === 'category'){
         drillTitle.textContent = 'Breakdown: Category';
-        // show sorted by category total
         const totals = groupSum(txns, t => nameById(state.categories,t.categoryId));
         const sorter = [...totals.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
         rows = [...txns].sort((a,b)=> sorter.indexOf(nameById(state.categories,b.categoryId)) - sorter.indexOf(nameById(state.categories,a.categoryId)));
@@ -807,7 +882,7 @@
           <td>${nameById(state.categories,t.categoryId)}</td>
           <td>${nameById(state.paymentMethods,t.paymentMethodId)}</td>
           <td>${nameById(state.cards,t.cardId)}</td>
-          <td class="rupee">${fmtINR(t.amount)}</td>
+          <td class="rupee">${fmtCurrency(t.amount)}</td>
           <td>${t.notes || ''}</td>
         `;
         drillTableBody.appendChild(tr);
@@ -852,7 +927,7 @@
           <div class="grid cols-3" style="margin-top:8px">
             <div class="stat">
               <div class="muted">Total Spends</div>
-              <div class="value rupee">${fmtINR(sum)}</div>
+              <div class="value rupee">${fmtCurrency(sum)}</div>
             </div>
             <div class="stat">
               <div class="muted">Transactions</div>
@@ -860,7 +935,7 @@
             </div>
             <div class="stat">
               <div class="muted">Avg txn</div>
-              <div class="value rupee">${fmtINR(txnsForCard.length ? sum/txnsForCard.length : 0)}</div>
+              <div class="value rupee">${fmtCurrency(txnsForCard.length ? sum/txnsForCard.length : 0)}</div>
             </div>
           </div>
         `;
@@ -881,7 +956,7 @@
               <td>${t.date}</td>
               <td>${nameById(state.people,t.personId)}</td>
               <td>${nameById(state.categories,t.categoryId)}</td>
-              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td class="rupee">${fmtCurrency(t.amount)}</td>
               <td>${t.notes || ''}</td>
             `;
             cardTxnTableBody.appendChild(tr);
@@ -935,9 +1010,9 @@
             </div>
           </div>
           <div class="grid cols-3" style="margin-top:8px">
-            <div class="stat"><div class="muted">Total Spends</div><div class="value rupee">${fmtINR(sum)}</div></div>
+            <div class="stat"><div class="muted">Total Spends</div><div class="value rupee">${fmtCurrency(sum)}</div></div>
             <div class="stat"><div class="muted">Transactions</div><div class="value">${txns.length}</div></div>
-            <div class="stat"><div class="muted">Avg txn</div><div class="value rupee">${fmtINR(txns.length ? sum/txns.length : 0)}</div></div>
+            <div class="stat"><div class="muted">Avg txn</div><div class="value rupee">${fmtCurrency(txns.length ? sum/txns.length : 0)}</div></div>
           </div>
         `;
         usersList.appendChild(div);
@@ -947,7 +1022,7 @@
           const id = btn.getAttribute('data-view');
           const person = state.people.find(x => x.id === id);
           const txns = state.transactions.filter(t => t.personId === id);
-          personTxnTitle.textContent = `Transactions — ${person.name}`;
+          personTxnTitle.textContent = `Transactions — ${person?.name || '—'}`;
           personTxnTableBody.innerHTML = '';
           txns.sort((a,b)=> new Date(b.date)-new Date(a.date)).forEach(t => {
             const tr = document.createElement('tr');
@@ -955,7 +1030,7 @@
               <td>${t.date}</td>
               <td>${nameById(state.categories,t.categoryId)}</td>
               <td>${nameById(state.paymentMethods,t.paymentMethodId)} ${t.cardId ? '('+nameById(state.cards,t.cardId)+')':''}</td>
-              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td class="rupee">${fmtCurrency(t.amount)}</td>
               <td>${t.notes || ''}</td>
             `;
             personTxnTableBody.appendChild(tr);
@@ -1017,7 +1092,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${k}</td>
-          <td class="rupee">${fmtINR(info.total)}</td>
+          <td class="rupee">${fmtCurrency(info.total)}</td>
           <td>${info.count}</td>
           <td><button class="btn small secondary" data-month="${k}">View</button></td>
         `;
@@ -1039,7 +1114,7 @@
               <td>${nameById(state.people,t.personId)}</td>
               <td>${nameById(state.categories,t.categoryId)}</td>
               <td>${nameById(state.paymentMethods,t.paymentMethodId)} ${t.cardId ? '('+nameById(state.cards,t.cardId)+')':''}</td>
-              <td class="rupee">${fmtINR(t.amount)}</td>
+              <td class="rupee">${fmtCurrency(t.amount)}</td>
               <td>${t.notes || ''}</td>
             `;
             monthlyDrillTableBody.appendChild(tr);
@@ -1121,7 +1196,50 @@
           });
         });
       }
+
+      // Currency settings panel
+      renderCurrencySettings();
     }
+
+    // ======= Currency Settings =======
+    const currencySelect   = document.getElementById('currencySelect');
+    const currencyPreview  = document.getElementById('currencyPreview');
+    const btnSaveCurrency  = document.getElementById('btnSaveCurrency');
+
+    function renderCurrencySettings(){
+      currencySelect.innerHTML = '';
+      CURRENCIES.forEach(cur => {
+        const opt = document.createElement('option');
+        opt.value = cur.code;
+        opt.textContent = `${cur.flag} ${cur.country} — ${cur.symbol} ${cur.code}`;
+        currencySelect.appendChild(opt);
+      });
+      currencySelect.value = state.currencyCode || 'INR';
+      updateCurrencyPreview();
+    }
+
+    function updateCurrencyPreview(){
+      const sel = currencySelect.value || 'INR';
+      const cur = getCurrency(sel);
+      try {
+        currencyPreview.value = new Intl.NumberFormat(cur.locale || 'en-IN', {
+          style: 'currency',
+          currency: cur.code
+        }).format(1234.56);
+      } catch {
+        currencyPreview.value = `${cur.symbol} 1,234.56`;
+      }
+    }
+
+    currencySelect.addEventListener('change', updateCurrencyPreview);
+
+    btnSaveCurrency.addEventListener('click', () => {
+      const code = currencySelect.value || 'INR';
+      state.currencyCode = code;
+      state.currency = code; // keep legacy in sync
+      saveState();        // persists and re-renders whole app
+      alert(`Currency updated to ${code}`);
+    });
 
     // ======= Home Stats =======
     const homeStats = document.getElementById('home-stats');
@@ -1132,11 +1250,28 @@
       const monthTotal = txns.filter(t => monthKey(t.date) === thisMonthKey).reduce((s,t)=>s+t.amount,0);
       const peopleCount = state.people.length;
       homeStats.innerHTML = `
-        <div class="stat"><div class="muted">Total Spend (All time)</div><div class="value rupee">${fmtINR(total)}</div></div>
-        <div class="stat"><div class="muted">This Month</div><div class="value rupee">${fmtINR(monthTotal)}</div></div>
+        <div class="stat"><div class="muted">Total Spend (All time)</div><div class="value rupee">${fmtCurrency(total)}</div></div>
+        <div class="stat"><div class="muted">This Month</div><div class="value rupee">${fmtCurrency(monthTotal)}</div></div>
         <div class="stat"><div class="muted">People Tracked</div><div class="value">${peopleCount}</div></div>
       `;
     }
+
+    // ======= Amount Headers (show symbol dynamically) =======
+    const setAmountHeaders = () => {
+      const sym = getCurrency(state.currencyCode).symbol;
+      const set = (id, base) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = `${base} (${sym})`;
+      };
+      set('txnAmountHeader', 'Amount');
+      set('drillAmountHeader', 'Amount');
+      set('cardTxnAmountHeader', 'Amount');
+      set('personTxnAmountHeader', 'Amount');
+      set('monthlyAmountHeader', 'Total');
+      set('monthlyDrillAmountHeader', 'Amount');
+      const note = document.getElementById('currencyNote');
+      if (note) note.textContent = `Currency: ${state.currencyCode} — amounts are formatted accordingly.`;
+    };
 
     // ======= Render All =======
     function renderAll(){
@@ -1150,12 +1285,19 @@
       renderMonthly();
       renderSettings();
       renderHome();
+      setAmountHeaders();
     }
     renderAll();
 
     // ======= Quality-of-life: keyboard =======
     document.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape'){ closeModal(); monthlyDrill.style.display = 'none'; analyticsDrill.style.display = 'none'; cardTransactionsPanel.style.display = 'none'; personTransactionsPanel.style.display = 'none'; }
+      if(e.key === 'Escape'){
+        closeModal();
+        document.getElementById('monthlyDrill').style.display = 'none';
+        document.getElementById('analytics-drill').style.display = 'none';
+        document.getElementById('cardTransactionsPanel').style.display = 'none';
+        document.getElementById('personTransactionsPanel').style.display = 'none';
+      }
     });
   </script>
 </body>
